@@ -123,6 +123,9 @@ export function isBlockValid( state, clientId ) {
  * @return {Object?} Block attributes.
  */
 export function getBlockAttributes( state, clientId ) {
+	if ( ! state.blocks ) {
+		return null;
+	}
 	const block = state.blocks.byClientId[ clientId ];
 	if ( ! block ) {
 		return null;
@@ -137,8 +140,8 @@ export function getBlockAttributes( state, clientId ) {
  * is not the block's registration settings, which must be retrieved from the
  * blocks module registration store.
  *
- * @param {Object} state    Editor state.
- * @param {string} clientId Block client ID.
+ * @param {Object}  state    Editor state.
+ * @param {string}  clientId Block client ID.
  *
  * @return {Object} Parsed block object.
  */
@@ -162,6 +165,41 @@ export const getBlock = createSelector(
 		// the attributes and inner blocks into account. The value of the cache key
 		// is being changed whenever one of these dependencies is out of date.
 		state.blocks.cache[ clientId ],
+	]
+);
+
+/**
+ * Returns a block given its client ID, in the same format is `getBlock`. The
+ * difference is that this selector excludes the InnerBlocks for any block which
+ * is an InnerBlocks controller. This is used to exclude blocks from a root entity
+ * (like a block template in the site editor) which are controlled by other
+ * entities. Without this selector, the root entity can become dirty even when
+ * changes are made to blocks which are not part of the persisted block state.
+ *
+ * @param {Object}  state    Block editor state.
+ * @param {string}  clientId Block client ID.
+ *
+ * @return {Object} Parsed block object excluding controlled inner blocks.
+ */
+export const getBlockWithoutControlledInnerBlocks = createSelector(
+	( state, clientId ) => {
+		const block = state.blocks.byClientId[ clientId ];
+		if ( ! block ) {
+			return null;
+		}
+
+		return {
+			...block,
+			attributes: getBlockAttributes( state, clientId ),
+			innerBlocks: areInnerBlocksControlled( state, clientId )
+				? EMPTY_ARRAY
+				: getBlocks( state, clientId, false ),
+		};
+	},
+	( state, clientId ) => [
+		areInnerBlocksControlled( state, clientId )
+			? getBlockAttributes( clientId )
+			: state.blocks.cache[ clientId ],
 	]
 );
 
@@ -192,13 +230,17 @@ export const __unstableGetBlockWithoutInnerBlocks = createSelector(
  *
  * @param {Object}  state        Editor state.
  * @param {?string} rootClientId Optional root client ID of block list.
+ * @param {?boolean} withControlledInnerBlocks If true, include inner blocks that
+ *                                             are controlled by their parent.
  *
  * @return {Object[]} Post blocks.
  */
 export const getBlocks = createSelector(
-	( state, rootClientId ) => {
+	( state, rootClientId, withControlledInnerBlocks = true ) => {
 		return map( getBlockOrder( state, rootClientId ), ( clientId ) =>
-			getBlock( state, clientId )
+			withControlledInnerBlocks
+				? getBlock( state, clientId )
+				: getBlockWithoutControlledInnerBlocks( state, clientId )
 		);
 	},
 	( state ) => [

@@ -260,6 +260,7 @@ _Parameters_
 
 -   _state_ `Object`: Editor state.
 -   _rootClientId_ `?string`: Optional root client ID of block list.
+-   _withControlledInnerBlocks_ `?boolean`: If true, include inner blocks that are controlled by their parent.
 
 _Returns_
 
@@ -306,6 +307,24 @@ _Parameters_
 _Returns_
 
 -   `?string`: Client ID of block selection start.
+
+<a name="getBlockWithoutControlledInnerBlocks" href="#getBlockWithoutControlledInnerBlocks">#</a> **getBlockWithoutControlledInnerBlocks**
+
+Returns a block given its client ID, in the same format is `getBlock`. The
+difference is that this selector excludes the InnerBlocks for any block which
+is an InnerBlocks controller. This is used to exclude blocks from a root entity
+(like a block template in the site editor) which are controlled by other
+entities. Without this selector, the root entity can become dirty even when
+changes are made to blocks which are not part of the persisted block state.
+
+_Parameters_
+
+-   _state_ `Object`: Block editor state.
+-   _clientId_ `string`: Block client ID.
+
+_Returns_
+
+-   `Object`: Parsed block object excluding controlled inner blocks.
 
 <a name="getClientIdsOfDescendants" href="#getClientIdsOfDescendants">#</a> **getClientIdsOfDescendants**
 
