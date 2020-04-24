@@ -138,3 +138,19 @@ function gutenberg_render_template_part_list_table_column( $column_name, $post_i
 	echo esc_html( $post->post_name );
 }
 add_action( 'manage_wp_template_part_posts_custom_column', 'gutenberg_render_template_part_list_table_column', 10, 2 );
+
+/**
+ * Filter for adding meta query support to `wp_template_part` REST API queries.
+ *
+ * @param array           $args    The query arguments.
+ * @param WP_REST_Request $request The request object.
+ * @return array Filtered $args.
+ */
+function filter_rest_wp_template_part_query( $args, $request ) {
+	$args += array(
+		'meta_key'   => $request['metaKey'],
+		'meta_value' => $request['metaValue'],
+	);
+	return $args;
+}
+add_filter( 'rest_wp_template_part_query', 'filter_rest_wp_template_part_query', 99, 2 );
