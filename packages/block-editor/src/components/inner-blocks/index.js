@@ -73,6 +73,7 @@ class InnerBlocks extends Component {
 			templateInProcess: !! this.props.template,
 		};
 		this.updateNestedSettings();
+		this.hasPendingBlockChanges = false;
 	}
 
 	componentDidMount() {
@@ -123,11 +124,35 @@ class InnerBlocks extends Component {
 			}
 		}
 
-		// Sync with controlled blocks value from parent, if possible.
-		if ( prevProps.block.innerBlocks !== innerBlocks ) {
-			const resetFunc = isLastBlockChangePersistent ? onChange : onInput;
-			if ( resetFunc ) {
-				resetFunc( innerBlocks );
+		// Only attempt update logic if block is controlled.
+		if ( onInput || onChange ) {
+			const areBlocksDifferent = ! isShallowEqual(
+				prevProps.block.innerBlocks,
+				innerBlocks
+			);
+
+			// Since we often dispatch an action to mark the previous action as
+			// persistent, we need to make sure that the blocks changed on a
+			// previous action before committing the change. Otherwise, we may
+			// end up calling onChange when a different entity has updated.
+			const didPersistenceChange =
+				this.hasPendingBlockChanges &&
+				isLastBlockChangePersistent &&
+				! prevProps.isLastBlockChangePersistent;
+
+			// Sync with controlled blocks value from parent, if possible.
+			if ( areBlocksDifferent || didPersistenceChange ) {
+				const resetFunc = isLastBlockChangePersistent
+					? onChange
+					: onInput;
+				if ( resetFunc ) {
+					resetFunc( innerBlocks );
+				}
+				// Clear the pending state if we persisted it. Otherwise, set
+				// the state to whether or not we've made changes.
+				this.hasPendingBlockChanges = isLastBlockChangePersistent
+					? false
+					: areBlocksDifferent;
 			}
 		}
 	}
